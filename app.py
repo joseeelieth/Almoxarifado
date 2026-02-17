@@ -1069,4 +1069,5 @@ def estoque_saldo():
 # ================= INICIALIZAÇÃO =================
 if __name__ == '__main__':
     criar_banco()
-    app.run(debug=True)
+    # app.run(debug=True)  # REMOVIDO para produção no Railway
+

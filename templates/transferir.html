@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Transferência de Produtos{% endblock %}
+
+{% block content %}
+
+<div class="mb-3 d-flex justify-content-between">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+
+    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalSetores">
+        <i class="fas fa-cogs"></i> Gerenciar Setores
+    </button>
+</div>
+
+<h2 class="mb-4">
+    <i class="fas fa-exchange-alt"></i> Transferência / Devolução
+</h2>
+
+<div class="mb-4 col-md-4">
+    <label class="form-label fw-bold">Tipo de Operação</label>
+    <select id="tipo_operacao" class="form-select" onchange="alterarModo()">
+        <option value="transferencia">Transferência</option>
+        <option value="devolucao">Devolução</option>
+    </select>
+</div>
+
+<form method="POST" class="row g-3 mb-5" id="formTransferencia" onsubmit="return executarTransferencia()">
+
+    <!-- PRODUTO -->
+    <div class="col-md-4">
+        <label class="form-label">Produto</label>
+        <select name="produto_id" id="produto_id" class="form-select" required onchange="atualizarProduto()">
+            <option value="" disabled selected>Selecione</option>
+            {% for p in produtos %}
+            <option value="{{ p.id }}" data-peso="{{ p.peso_unitario }}">{{ p.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- SALDO DISPONÍVEL -->
+    <div class="col-md-2">
+        <label class="form-label">Saldo Disponível</label>
+        <input type="number" id="quantidade_disponivel" class="form-control" readonly>
+    </div>
+
+    <!-- DE SETOR -->
+    <div class="col-md-3">
+        <label class="form-label">De Setor</label>
+        <select name="de_setor" id="de_setor" class="form-select" required onchange="atualizarSaldos()"></select>
+        <small>Saldo: <strong><span id="saldo_de">0</span></strong></small>
+    </div>
+
+    <!-- PARA SETOR -->
+    <div class="col-md-3">
+        <label class="form-label">Para Setor</label>
+        <select name="para_setor" id="para_setor" class="form-select" required onchange="atualizarSaldos()"></select>
+        <small>Saldo: <strong><span id="saldo_para">0</span></strong></small>
+    </div>
+
+    <!-- QUANTIDADE -->
+    <div class="col-md-3">
+        <label class="form-label">Quantidade</label>
+        <input type="number" name="quantidade" id="quantidade"
+               class="form-control" min="1" required oninput="verificarQuantidade()">
+        <div id="msgErro" class="text-danger mt-1" style="display:none;">Quantidade maior que o saldo disponível!</div>
+    </div>
+
+    <!-- PESO -->
+    <div class="col-md-3">
+        <label class="form-label">Peso (kg)</label>
+        <input type="number" name="peso" id="peso"
+               class="form-control" step="0.01" readonly>
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-warning" id="btnConfirmar">
+            <i class="fas fa-check"></i> Confirmar
+        </button>
+    </div>
+</form>
+
+<h4 class="mb-3"><i class="fas fa-warehouse"></i> Estoque Atual</h4>
+
+<table class="table table-bordered table-striped" id="tabelaEstoque">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Produto</th>
+            <th>Setor</th>
+            <th>Qtd</th>
+            <th>Peso</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+const setores = ["Almoxarifado","LPA 01","LPA 02","LPA 03","LPA 04","LPA 05"];
+let estoque = {{ estoque | tojson | safe }};
+let pesoPorUnidade = 0;
+
+const btnConfirmar = document.getElementById('btnConfirmar');
+const msgErro = document.getElementById('msgErro');
+const quantidade = document.getElementById('quantidade');
+const peso = document.getElementById('peso');
+const produto_id = document.getElementById('produto_id');
+const de_setor = document.getElementById('de_setor');
+const para_setor = document.getElementById('para_setor');
+const quantidade_disponivel = document.getElementById('quantidade_disponivel');
+const saldo_de = document.getElementById('saldo_de');
+const saldo_para = document.getElementById('saldo_para');
+
+/* ===== RENDERIZA TABELA ===== */
+function renderTabela() {
+    const tbody = document.querySelector('#tabelaEstoque tbody');
+    tbody.innerHTML = '';
+    estoque.forEach(item => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.produto_id}</td>
+                <td>${item.produto_nome || item.nome}</td>
+                <td>${item.setor}</td>
+                <td>${item.quantidade}</td>
+                <td>${(item.quantidade * (item.peso / item.quantidade || pesoPorUnidade)).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+/* ===== CALCULA SALDOS ===== */
+function saldo(produto, setor) {
+    return estoque.filter(p => p.produto_id == produto && p.setor === setor)
+                  .reduce((total, p) => total + p.quantidade, 0);
+}
+
+/* ===== ATUALIZA SALDOS ===== */
+function atualizarProduto() {
+    const selected = produto_id.selectedOptions[0];
+    pesoPorUnidade = parseFloat(selected.dataset.peso) || 0;
+    atualizarSaldos();
+    quantidade.value = '';
+    peso.value = '0.00';
+    verificarQuantidade();
+}
+
+function atualizarSaldos() {
+    const id = parseInt(produto_id.value);
+    if (!id) return;
+
+    const sDe = saldo(id, de_setor.value);
+    const sPara = saldo(id, para_setor.value);
+
+    saldo_de.innerText = sDe.toFixed(2);
+    saldo_para.innerText = sPara.toFixed(2);
+    quantidade_disponivel.value = sDe;
+
+    quantidade.max = sDe;
+    calcularPeso();
+    verificarQuantidade();
+}
+
+/* ===== VERIFICA QUANTIDADE ===== */
+function verificarQuantidade() {
+    const q = parseFloat(quantidade.value) || 0;
+    const max = parseFloat(quantidade_disponivel.value) || 0;
+
+    if (q > max) {
+        msgErro.style.display = 'block';
+        btnConfirmar.disabled = true;
+    } else {
+        msgErro.style.display = 'none';
+        btnConfirmar.disabled = false;
+    }
+
+    calcularPeso();
+}
+
+/* ===== CALCULA PESO ===== */
+function calcularPeso() {
+    const q = parseFloat(quantidade.value) || 0;
+    peso.value = (q * pesoPorUnidade).toFixed(2);
+}
+
+/* ===== EXECUTA TRANSFERÊNCIA ===== */
+function executarTransferencia() {
+    const id = parseInt(produto_id.value);
+    const origem = de_setor.value;
+    const destino = para_setor.value;
+    const q = parseFloat(quantidade.value) || 0;
+
+    if (!id || q <= 0) return false;
+
+    // Atualiza estoque origem
+    let itemOrigem = estoque.find(e => e.produto_id == id && e.setor === origem);
+    if(itemOrigem){
+        itemOrigem.quantidade -= q;
+        itemOrigem.peso = itemOrigem.quantidade * pesoPorUnidade;
+    }
+
+    // Atualiza ou cria estoque destino
+    let itemDestino = estoque.find(e => e.produto_id == id && e.setor === destino);
+    if(itemDestino){
+        itemDestino.quantidade += q;
+        itemDestino.peso = itemDestino.quantidade * pesoPorUnidade;
+    } else {
+        const nomeProduto = produto_id.selectedOptions[0].text;
+        estoque.push({
+            produto_id: id,
+            produto_nome: nomeProduto,
+            nome: nomeProduto,
+            setor: destino,
+            quantidade: q,
+            peso: q * pesoPorUnidade
+        });
+    }
+
+    renderTabela();
+    atualizarSaldos();
+    return true; // permite envio do POST
+}
+
+/* ===== MODO OPERAÇÃO ===== */
+function alterarModo() {
+    de_setor.innerHTML = '';
+    para_setor.innerHTML = '';
+
+    if(tipo_operacao.value === 'transferencia'){
+        de_setor.innerHTML = `<option>Almoxarifado</option>`;
+        setores.filter(s => s !== 'Almoxarifado').forEach(s => para_setor.innerHTML += `<option>${s}</option>`);
+    } else {
+        para_setor.innerHTML = `<option>Almoxarifado</option>`;
+        setores.filter(s => s !== 'Almoxarifado').forEach(s => de_setor.innerHTML += `<option>${s}</option>`);
+    }
+
+    atualizarSaldos();
+}
+
+/* ===== INICIALIZA ===== */
+document.addEventListener('DOMContentLoaded', () => {
+    alterarModo();
+    renderTabela();
+});
+</script>
+
+{% endblock %}

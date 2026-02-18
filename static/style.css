@@ -1,0 +1,144 @@
+/* ================= Tipografia ================= */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+}
+
+h1, h2, h3, h4 {
+    color: #1e3c72;
+}
+
+/* ================= Navbar ================= */
+.navbar {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ================= Cards ================= */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* ================= Tabelas ================= */
+table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table thead {
+    background-color: #1e3c72 !important;
+    color: #fff;
+}
+
+table tbody tr:hover {
+    background-color: #f0f4ff;
+}
+
+/* ================= Formulários ================= */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    border-color: #1e3c72;
+    box-shadow: 0 0 5px rgba(30,60,114,0.3);
+}
+
+/* ================= Botões ================= */
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #154080;
+    border-color: #154080;
+}
+
+.btn-success:hover {
+    background-color: #1b5e20;
+    border-color: #1b5e20;
+}
+
+.btn-danger:hover {
+    background-color: #8b0000;
+    border-color: #8b0000;
+}
+
+.btn-warning:hover {
+    background-color: #d48806;
+    border-color: #d48806;
+}
+
+/* ================= Inputs com ícones ================= */
+.position-relative .toggle-password {
+    color: #6c757d;
+    cursor: pointer;
+    user-select: none;
+}
+
+.position-relative .toggle-password:hover {
+    color: #1e3c72;
+}
+
+/* ================= Flash messages ================= */
+.alert {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* ================= Footer ================= */
+footer {
+    background-color: #e9ecef;
+    border-top: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+/* ================= Layout ================= */
+.container {
+    max-width: 1200px;
+}
+
+/* ================= Links ================= */
+a {
+    color: #1e3c72;
+    transition: all 0.2s;
+}
+
+a:hover {
+    color: #154080;
+    text-decoration: none;
+}
+
+/* ================= Responsividade ================= */
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 1.1rem;
+    }
+
+    .btn {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+.grafico-container {
+    width: 100%;
+    max-width: 350px;   /* controla o tamanho */
+    height: 280px;      /* altura fixa */
+    margin: 0 auto;     /* centraliza */
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Entrada de Produtos{% endblock %}
+
+{% block content %}
+
+<!-- Voltar -->
+<div class="mb-3 d-flex justify-content-between">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+
+    <!-- Botão para ocultar/exibir tabela -->
+    <button id="btnToggleTabela" class="btn btn-outline-primary">
+        <i class="fas fa-eye"></i> Mostrar / Ocultar Produtos
+    </button>
+</div>
+
+<h2 class="mb-4">
+    <i class="fas fa-box-open"></i> Entrada de Produtos no Estoque
+</h2>
+
+<div id="mensagemErro" class="alert alert-danger d-none"></div>
+
+<form id="formEntrada" class="row g-3 mb-5" onsubmit="return validarFormulario()">
+
+    <!-- PRODUTO -->
+    <div class="col-md-5">
+        <label class="form-label fw-bold">Produto</label>
+        <select name="produto_id" id="produto_id" class="form-select" required>
+            <option value="" disabled selected>Selecione o produto</option>
+            {% for produto in produtos %}
+            <option
+                value="{{ produto.id }}"
+                data-peso="{{ produto.peso_unitario }}"
+                data-estoque="{{ produto.quantidade_estoque }}"
+                data-codigo="{{ produto.codigo }}"
+            >
+                {{ produto.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- SETOR -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Setor</label>
+        <select name="setor" id="setor" class="form-select" required>
+            <option value="" disabled selected>Selecione</option>
+            <option value="Almoxarifado">Almoxarifado</option>
+            <option value="Produção">Produção</option>
+            <option value="Expedição">Expedição</option>
+        </select>
+    </div>
+
+    <!-- ESTOQUE ATUAL -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold">Estoque Atual</label>
+        <input type="number" id="estoque_atual" class="form-control" readonly>
+    </div>
+
+    <!-- PESO UNITÁRIO -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold">Peso / Unidade (kg)</label>
+        <input type="number" id="peso_unitario" class="form-control" step="0.01" readonly>
+    </div>
+
+    <!-- QUANTIDADE -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Quantidade de Entrada</label>
+        <input type="number"
+               name="quantidade"
+               id="quantidade"
+               class="form-control"
+               min="1"
+               step="1"
+               required>
+    </div>
+
+    <!-- PESO TOTAL -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Peso Total (kg)</label>
+        <input type="number" name="peso" id="peso" class="form-control" step="0.01" readonly>
+    </div>
+
+    <div class="col-12 mt-3">
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-check"></i> Registrar Entrada
+        </button>
+    </div>
+</form>
+
+<hr>
+
+<!-- DIV que envolve a tabela e pode ser ocultada -->
+<div id="tabelaProdutosWrapper">
+    <h4 class="mt-4">Produtos Cadastrados</h4>
+    <table class="table table-striped table-bordered align-middle" id="tabelaProdutos">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Estoque</th>
+                <th>Peso Unitário (kg)</th>
+                <th>Setor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos %}
+            <tr>
+                <td>{{ produto.id }}</td>
+                <td>{{ produto.nome }}</td>
+                <td>{{ produto.codigo or '-' }}</td>
+                <td>{{ produto.quantidade_estoque }}</td>
+                <td>{{ produto.peso_unitario }}</td>
+                <td>{{ produto.ultimo_setor or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const produtoSelect = document.getElementById('produto_id');
+    const setorSelect = document.getElementById('setor');
+    const estoqueInput = document.getElementById('estoque_atual');
+    const pesoUnitarioInput = document.getElementById('peso_unitario');
+    const quantidadeInput = document.getElementById('quantidade');
+    const pesoTotalInput = document.getElementById('peso');
+    const tabelaWrapper = document.getElementById('tabelaProdutosWrapper');
+    const btnToggleTabela = document.getElementById('btnToggleTabela');
+    const tabelaProdutos = document.getElementById('tabelaProdutos').querySelector('tbody');
+
+    function atualizarDadosProduto() {
+        const option = produtoSelect.selectedOptions[0];
+        if (!option) return;
+
+        const pesoUnitario = parseFloat(option.dataset.peso) || 0;
+        const estoque = parseInt(option.dataset.estoque) || 0;
+
+        pesoUnitarioInput.value = pesoUnitario.toFixed(2);
+        estoqueInput.value = estoque;
+
+        calcularPesoTotal();
+    }
+
+    function calcularPesoTotal() {
+        const qtd = parseInt(quantidadeInput.value) || 0;
+        const pesoUnit = parseFloat(pesoUnitarioInput.value) || 0;
+        pesoTotalInput.value = (qtd * pesoUnit).toFixed(2);
+    }
+
+    produtoSelect.addEventListener('change', atualizarDadosProduto);
+    quantidadeInput.addEventListener('input', calcularPesoTotal);
+
+    window.validarFormulario = function () {
+        const erro = document.getElementById('mensagemErro');
+        erro.classList.add('d-none');
+        erro.innerHTML = '';
+
+        if (!produtoSelect.value)
+            erro.innerHTML = 'Selecione um produto.';
+        else if (!setorSelect.value)
+            erro.innerHTML = 'Selecione o setor.';
+        else if (quantidadeInput.value <= 0)
+            erro.innerHTML = 'Quantidade inválida.';
+        else if (pesoTotalInput.value <= 0)
+            erro.innerHTML = 'Peso inválido.';
+
+        if (erro.innerHTML) {
+            erro.classList.remove('d-none');
+            return false;
+        }
+
+        // Registrar dinamicamente a entrada na tabela
+        const option = produtoSelect.selectedOptions[0];
+        const produtoId = produtoSelect.value;
+        const produtoNome = option.text;
+        const codigo = option.dataset.codigo || '-';
+        const estoqueAtual = parseInt(estoqueInput.value) + parseInt(quantidadeInput.value);
+        const pesoUnit = parseFloat(pesoUnitarioInput.value).toFixed(2);
+        const setor = setorSelect.value;
+
+        const novaLinha = document.createElement('tr');
+        novaLinha.innerHTML = `
+            <td>${produtoId}</td>
+            <td>${produtoNome}</td>
+            <td>${codigo}</td>
+            <td>${estoqueAtual}</td>
+            <td>${pesoUnit}</td>
+            <td>${setor}</td>
+        `;
+        tabelaProdutos.appendChild(novaLinha);
+
+        // Atualiza o input de estoque
+        estoqueInput.value = estoqueAtual;
+
+        // Limpa os campos
+        quantidadeInput.value = '';
+        pesoTotalInput.value = '0.00';
+        setorSelect.value = '';
+
+        return false; // evita reload da página
+    };
+
+    btnToggleTabela.addEventListener('click', () => {
+        if (tabelaWrapper.style.display === 'none') {
+            tabelaWrapper.style.display = 'block';
+            btnToggleTabela.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar Produtos';
+        } else {
+            tabelaWrapper.style.display = 'none';
+            btnToggleTabela.innerHTML = '<i class="fas fa-eye"></i> Mostrar Produtos';
+        }
+    });
+
+});
+</script>
+
+{% endblock %}

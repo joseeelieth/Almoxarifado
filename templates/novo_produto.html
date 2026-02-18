@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Cadastrar Produto{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="fas fa-box"></i> Cadastrar Novo Produto
+        </h3>
+
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for categoria, mensagem in messages %}
+          <div class="alert alert-{{ categoria }} alert-dismissible fade show">
+            {{ mensagem }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulário -->
+    <form method="POST" class="card shadow-sm p-4" onsubmit="return validarFormulario()">
+
+        <!-- Código -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Código do Produto</label>
+                <input type="text" name="codigo" class="form-control" required>
+            </div>
+        </div>
+
+        <!-- Nome e Setor -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Nome do Produto</label>
+                <input type="text" name="nome" class="form-control" required>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Setor Inicial</label>
+                <input type="text"
+                       name="setor"
+                       class="form-control"
+                       value="Almoxarifado"
+                       readonly>
+            </div>
+        </div>
+
+        <!-- Quantidade e Peso -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Quantidade Inicial</label>
+                <input type="number"
+                       name="quantidade"
+                       id="quantidade"
+                       class="form-control"
+                       value="0"
+                       min="0"
+                       step="1"
+                       oninput="calcularPesoTotal()"
+                       required>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Peso Unitário (kg)</label>
+                <input type="number"
+                       name="peso_unitario"
+                       id="peso_unitario"
+                       class="form-control"
+                       step="0.001"
+                       min="0.001"
+                       oninput="calcularPesoTotal()"
+                       required>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Peso Total (kg)</label>
+                <input type="number"
+                       id="peso_total"
+                       class="form-control"
+                       step="0.01"
+                       readonly>
+            </div>
+        </div>
+
+        <!-- Tamanho -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Tamanho / Dimensão</label>
+                <input type="text" name="tamanho" class="form-control" required>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-success" onclick="registrarPesoTotal()">
+                <i class="fas fa-save"></i> Cadastrar Produto
+            </button>
+
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                Cancelar
+            </a>
+        </div>
+
+        <!-- Peso acumulado -->
+        <div class="mt-3">
+            <strong>Peso acumulado de produtos cadastrados: </strong>
+            <span id="pesoAcumulado">0.00</span> kg
+        </div>
+
+    </form>
+</div>
+
+<script>
+let pesoAcumulado = 0;
+
+function calcularPesoTotal() {
+    const qtd = parseInt(document.getElementById("quantidade").value) || 0;
+    const pesoUnit = parseFloat(document.getElementById("peso_unitario").value) || 0;
+    document.getElementById("peso_total").value = (qtd * pesoUnit).toFixed(2);
+}
+
+// Somar peso ao registrar produto
+function registrarPesoTotal() {
+    const pesoTotal = parseFloat(document.getElementById("peso_total").value) || 0;
+    pesoAcumulado += pesoTotal;
+    document.getElementById("pesoAcumulado").innerText = pesoAcumulado.toFixed(2);
+}
+
+function validarFormulario() {
+    const pesoUnit = parseFloat(document.getElementById("peso_unitario").value) || 0;
+
+    if (pesoUnit <= 0) {
+        alert("Peso unitário deve ser maior que zero.");
+        return false;
+    }
+    return true;
+}
+</script>
+
+{% endblock %}

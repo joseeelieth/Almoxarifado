@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Saída de Produtos{% endblock %}
+
+{% block content %}
+
+<div class="mb-3 d-flex justify-content-between">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+
+    <!-- Botão para ocultar/exibir tabela -->
+    <button id="btnToggleTabela" class="btn btn-outline-primary">
+        <i class="fas fa-eye"></i> Mostrar / Ocultar Tabela
+    </button>
+</div>
+
+<h2 class="mb-4">
+    <i class="fas fa-truck-loading"></i> Registrar Saída de Produtos
+</h2>
+
+<div id="mensagemErro" class="alert alert-danger d-none"></div>
+
+<form id="formSaida" class="row g-3 mb-5">
+
+    <!-- PRODUTO -->
+    <div class="col-md-4">
+        <label class="form-label">Produto</label>
+        <select name="produto_id" id="produto_id" class="form-select" required>
+            <option value="" disabled selected>Selecione</option>
+            {% for produto in produtos %}
+            <option
+                value="{{ produto.id }}"
+                data-peso="{{ produto.peso_unitario }}"
+            >
+                {{ produto.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- SETOR -->
+    <div class="col-md-3">
+        <label class="form-label">Setor</label>
+        <select name="setor" id="setor" class="form-select" required>
+            <option value="" disabled selected>Selecione</option>
+            <option value="Almoxarifado">Almoxarifado</option>
+            <option value="Produção">Produção</option>
+            <option value="Expedição">Expedição</option>
+        </select>
+    </div>
+
+    <!-- QTD DISPONÍVEL -->
+    <div class="col-md-2">
+        <label class="form-label">Qtd. Disponível</label>
+        <input type="number" id="quantidade_disponivel" class="form-control" readonly>
+    </div>
+
+    <!-- QUANTIDADE -->
+    <div class="col-md-1">
+        <label class="form-label">Qtd</label>
+        <input type="number"
+               name="quantidade"
+               id="quantidade"
+               class="form-control"
+               min="1"
+               step="1"
+               required
+               oninput="calcularPesoTotal()">
+    </div>
+
+    <!-- PESO UNITÁRIO -->
+    <div class="col-md-1">
+        <label class="form-label">Kg / Un</label>
+        <input type="number"
+               id="peso_unitario"
+               class="form-control"
+               step="0.01"
+               readonly>
+    </div>
+
+    <!-- PESO TOTAL -->
+    <div class="col-md-1">
+        <label class="form-label">Peso</label>
+        <input type="number"
+               name="peso"
+               id="peso"
+               class="form-control"
+               step="0.01"
+               readonly>
+    </div>
+
+    <div class="col-12">
+        <button type="submit" class="btn btn-danger">
+            <i class="fas fa-check"></i> Registrar Saída
+        </button>
+    </div>
+</form>
+
+<!-- DIV que envolve a tabela de saídas -->
+<div id="tabelaSaidasWrapper" class="mt-4">
+    <h4>Saídas Registradas</h4>
+    <table class="table table-striped table-bordered align-middle" id="tabelaSaidas">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Produto</th>
+                <th>Setor</th>
+                <th>Quantidade</th>
+                <th>Peso (kg)</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for saida in saidas %}
+            <tr>
+                <td>{{ saida.id }}</td>
+                <td>{{ saida.produto_nome }}</td>
+                <td>{{ saida.setor }}</td>
+                <td>{{ saida.quantidade }}</td>
+                <td>{{ saida.peso }}</td>
+                <td>{{ saida.data }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+let contadorSaida = {{ saidas|length + 1 }}; // ID incremental
+
+/* ===== CALCULA PESO TOTAL ===== */
+function calcularPesoTotal() {
+    const qtd = parseInt(document.getElementById('quantidade').value) || 0;
+    const pesoUn = parseFloat(document.getElementById('peso_unitario').value) || 0;
+    document.getElementById('peso').value = (qtd * pesoUn).toFixed(2);
+}
+
+/* ===== ATUALIZA PESO UNITÁRIO AO SELECIONAR PRODUTO ===== */
+document.getElementById('produto_id').addEventListener('change', () => {
+    const opt = document.getElementById('produto_id').selectedOptions[0];
+    document.getElementById('peso_unitario').value = parseFloat(opt.dataset.peso || 0).toFixed(2);
+    calcularPesoTotal();
+    buscarSaldo();
+});
+
+/* ===== ATUALIZA SALDO DISPONÍVEL AO MUDAR SETOR ===== */
+document.getElementById('setor').addEventListener('change', buscarSaldo);
+
+function buscarSaldo() {
+    const produto = document.getElementById('produto_id').value;
+    const setor = document.getElementById('setor').value;
+
+    if (!produto || !setor) {
+        document.getElementById('quantidade_disponivel').value = 0;
+        return;
+    }
+
+    fetch(`/estoque/saldo?produto_id=${produto}&setor=${setor}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('quantidade_disponivel').value = data.quantidade || 0;
+            document.getElementById('quantidade').max = data.quantidade || 0;
+        });
+}
+
+/* ===== VALIDAÇÃO E REGISTRO DE SAÍDA ===== */
+document.getElementById('formSaida').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const produtoOpt = document.getElementById('produto_id').selectedOptions[0];
+    const produtoNome = produtoOpt ? produtoOpt.text : '';
+    const setor = document.getElementById('setor').value;
+    const quantidade = parseFloat(document.getElementById('quantidade').value) || 0;
+    const peso = parseFloat(document.getElementById('peso').value) || 0;
+    const saldoDisp = parseFloat(document.getElementById('quantidade_disponivel').value) || 0;
+    const erro = document.getElementById('mensagemErro');
+
+    erro.classList.add('d-none');
+    erro.innerHTML = '';
+
+    if (!produtoNome || !setor || quantidade <= 0 || quantidade > saldoDisp) {
+        erro.innerHTML = 'Verifique os dados antes de registrar a saída.';
+        erro.classList.remove('d-none');
+        return false;
+    }
+
+    // Adiciona linha na tabela de saídas
+    const tabela = document.getElementById('tabelaSaidas').querySelector('tbody');
+    const dataAgora = new Date().toLocaleString();
+    const linha = document.createElement('tr');
+    linha.innerHTML = `
+        <td>${contadorSaida++}</td>
+        <td>${produtoNome}</td>
+        <td>${setor}</td>
+        <td>${quantidade}</td>
+        <td>${peso.toFixed(2)}</td>
+        <td>${dataAgora}</td>
+    `;
+    tabela.appendChild(linha);
+
+    // Atualiza saldo disponível
+    document.getElementById('quantidade_disponivel').value = saldoDisp - quantidade;
+    document.getElementById('quantidade').value = '';
+    document.getElementById('peso').value = '0.00';
+});
+
+/* ===== BOTÃO OCULTAR / EXIBIR TABELA ===== */
+document.addEventListener('DOMContentLoaded', () => {
+    const btnToggle = document.getElementById('btnToggleTabela');
+    const wrapper = document.getElementById('tabelaSaidasWrapper');
+
+    btnToggle.addEventListener('click', () => {
+        if (wrapper.style.display === 'none') {
+            wrapper.style.display = 'block';
+            btnToggle.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar Tabela';
+        } else {
+            wrapper.style.display = 'none';
+            btnToggle.innerHTML = '<i class="fas fa-eye"></i> Mostrar Tabela';
+        }
+    });
+});
+</script>
+
+{% endblock %}

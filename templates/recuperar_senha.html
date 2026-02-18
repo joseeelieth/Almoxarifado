@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Recuperar Senha{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4"><i class="fas fa-unlock-alt"></i> Recuperar Senha</h3>
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                      {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label"><i class="fas fa-envelope"></i> Email cadastrado</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Digite seu email" required>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Enviar Instruções</button>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="{{ url_for('login') }}" class="text-decoration-none"><i class="fas fa-sign-in-alt"></i> Voltar ao login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Entrada de Produtos{% endblock %}
+
+{% block content %}
+
+<!-- Botão Voltar -->
+<div class="mb-3">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<h2 class="mb-4">
+    <i class="fas fa-box-open"></i> Registrar Entrada de Produtos
+</h2>
+
+<div id="mensagemErro" class="alert alert-danger d-none"></div>
+
+<form method="POST" class="row g-3 mb-5" onsubmit="return validarFormulario()">
+
+    <!-- PRODUTO -->
+    <div class="col-md-4">
+        <label class="form-label">Produto</label>
+        <select name="produto_id" id="produto_id" class="form-select" required>
+            <option value="" disabled selected>Selecione o produto</option>
+            {% for produto in produtos %}
+            <option
+                value="{{ produto.id }}"
+                data-peso="{{ produto.peso_unitario }}"
+                data-estoque="{{ produto.quantidade or 0 }}"
+            >
+                {{ produto.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- PESO UNITÁRIO -->
+    <div class="col-md-2">
+        <label class="form-label">Peso / Unidade (kg)</label>
+        <input type="number" id="peso_unitario" class="form-control" step="0.01" readonly>
+    </div>
+
+    <!-- DISPONÍVEL -->
+    <div class="col-md-2">
+        <label class="form-label">Disponível (unidades)</label>
+        <input type="number" id="quantidade_disponivel" class="form-control" readonly>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Peso Total Disponível (kg)</label>
+        <input type="number" id="peso_disponivel" class="form-control" step="0.01" readonly>
+    </div>
+
+    <!-- SETOR -->
+    <div class="col-md-2">
+        <label class="form-label">Setor</label>
+        <select name="setor" class="form-select" required>
+            <option value="" disabled selected>Selecione</option>
+            <option value="Almoxarifado">Almoxarifado</option>
+            <option value="Produção">Produção</option>
+            <option value="Expedição">Expedição</option>
+        </select>
+    </div>
+
+    <!-- QUANTIDADE A ENTRAR -->
+    <div class="col-md-2">
+        <label class="form-label">Quantidade a Entrar</label>
+        <input type="number" name="quantidade" id="quantidade" class="form-control" min="1" step="1" required oninput="calcularPesoTotal()">
+    </div>
+
+    <!-- PESO TOTAL -->
+    <div class="col-md-2">
+        <label class="form-label">Peso Total (kg)</label>
+        <input type="number" name="peso" id="peso" class="form-control" step="0.01" readonly>
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-success">
+            <i class="fas fa-check"></i> Registrar Entrada
+        </button>
+    </div>
+</form>
+
+<!-- TABELA COM PRODUTOS CADASTRADOS -->
+<h4 class="mt-5">Produtos Cadastrados</h4>
+<table class="table table-striped table-bordered align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Código</th>
+            <th>Peso Unitário (kg)</th>
+            <th>Quantidade Disponível</th>
+            <th>Peso Total Disponível (kg)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for produto in produtos %}
+        <tr>
+            <td>{{ produto.id }}</td>
+            <td>{{ produto.nome }}</td>
+            <td>{{ produto.codigo if produto.codigo else '-' }}</td>
+            <td>{{ produto.peso_unitario }}</td>
+            <td>{{ produto.quantidade or 0 }}</td>
+            <td>{{ (produto.peso_unitario * (produto.quantidade or 0))|round(2) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+function calcularPesoTotal() {
+    const quantidade = parseInt(document.getElementById('quantidade').value) || 0;
+    const pesoUnitario = parseFloat(document.getElementById('peso_unitario').value) || 0;
+    document.getElementById('peso').value = (quantidade * pesoUnitario).toFixed(2);
+}
+
+// Atualiza campos ao selecionar produto
+document.getElementById('produto_id').addEventListener('change', function () {
+    const option = this.selectedOptions[0];
+    const pesoUnitario = parseFloat(option.dataset.peso) || 0;
+    const estoque = parseInt(option.dataset.estoque) || 0;
+
+    document.getElementById('peso_unitario').value = pesoUnitario.toFixed(2);
+    document.getElementById('quantidade_disponivel').value = estoque;
+    document.getElementById('peso_disponivel').value = (estoque * pesoUnitario).toFixed(2);
+
+    calcularPesoTotal();
+});
+
+function validarFormulario() {
+    const erro = document.getElementById('mensagemErro');
+    erro.classList.add('d-none');
+    erro.innerHTML = '';
+
+    if (!document.getElementById('produto_id').value)
+        erro.innerHTML = 'Selecione um produto.';
+    else if (!document.querySelector('[name="setor"]').value)
+        erro.innerHTML = 'Selecione o setor.';
+    else if (document.getElementById('quantidade').value <= 0)
+        erro.innerHTML = 'Quantidade inválida.';
+    else if (document.getElementById('peso').value <= 0)
+        erro.innerHTML = 'Peso inválido.';
+
+    if (erro.innerHTML) {
+        erro.classList.remove('d-none');
+        return false;
+    }
+    return true;
+}
+</script>
+
+{% endblock %}

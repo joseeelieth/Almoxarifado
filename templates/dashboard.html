@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="fas fa-tachometer-alt"></i> Dashboard
+</h2>
+
+<p class="lead">
+    Bem-vindo(a), <strong>{{ session.get('user_nome') }}</strong>!
+</p>
+
+<!-- BOTÃO ATUALIZAR -->
+<div class="mb-4">
+    <button onclick="atualizarDashboard()" class="btn btn-outline-primary">
+        <i class="fas fa-sync-alt"></i> Atualizar Dados
+    </button>
+    <small class="text-muted ms-2">
+        Entradas, saídas, peso e quantidade
+    </small>
+</div>
+
+<div class="row g-4 mt-3">
+    <!-- Card: Total de Produtos -->
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title">
+                        <i class="fas fa-boxes"></i> Total de Produtos
+                    </h5>
+                    <p class="card-text display-6">{{ totais.total_qtde or 0 }}</p>
+                </div>
+                <button class="btn btn-light btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#modalQuantidade">
+                    <i class="fas fa-search"></i> Ver Detalhes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Peso Total -->
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title">
+                        <i class="fas fa-weight-hanging"></i> Peso Total (kg)
+                    </h5>
+                    <p class="card-text display-6">{{ totais.total_peso or 0 }}</p>
+                </div>
+                <button class="btn btn-light btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#modalPeso">
+                    <i class="fas fa-search"></i> Ver Detalhes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Entradas -->
+    <div class="col-md-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-box-open"></i> Entradas
+                </h5>
+                <p class="card-text display-6">{{ entradas|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Saídas -->
+    <div class="col-md-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-truck-loading"></i> Saídas
+                </h5>
+                <p class="card-text display-6">{{ saidas|length }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GRAFICOS -->
+<div class="row mt-4">
+
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h11 class="fw-bold">Entradas por Produto</h11>
+
+                <div class="grafico-container">
+                    <canvas id="graficoEntradas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h11 class="fw-bold">Saídas por Produto</h11>
+
+                <div class="grafico-container">
+                    <canvas id="graficoSaidas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Acesso rápido -->
+<h4 class="mt-3 mb-3">
+    <i class="fas fa-rocket"></i> Acesso rápido
+</h4>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <a href="{{ url_for('entrada') }}" class="btn btn-primary w-100 py-3">
+            <i class="fas fa-box-open"></i> Entrada
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('saida') }}" class="btn btn-danger w-100 py-3">
+            <i class="fas fa-truck-loading"></i> Saída
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('transferir') }}" class="btn btn-warning w-100 py-3">
+            <i class="fas fa-exchange-alt"></i> Transferência
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('relatorios') }}" class="btn btn-success w-100 py-3">
+            <i class="fas fa-chart-bar"></i> Relatórios
+        </a>
+    </div>
+</div>
+
+<!-- MODAIS -->
+<!-- Modal Quantidade -->
+<div class="modal fade" id="modalQuantidade" tabindex="-1" aria-labelledby="modalQuantidadeLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalQuantidadeLabel">Produtos com Maior Quantidade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-striped">
+            <thead>
+                <tr><th>Produto</th><th>Quantidade</th></tr>
+            </thead>
+            <tbody>
+                {% for p in produtos|sort(attribute='quantidade', reverse=True) %}
+                <tr><td>{{ p.nome }}</td><td>{{ p.quantidade }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Peso -->
+<div class="modal fade" id="modalPeso" tabindex="-1" aria-labelledby="modalPesoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalPesoLabel">Produtos com Maior Peso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-striped">
+            <thead>
+                <tr><th>Produto</th><th>Peso (kg)</th></tr>
+            </thead>
+            <tbody>
+                {% for p in produtos|sort(attribute='peso', reverse=True) %}
+                <tr><td>{{ p.nome }}</td><td>{{ p.peso }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let graficoEntradas, graficoSaidas;
+
+function desenharGraficos(entradas, saidas) {
+    const ctxEntradas = document.getElementById('graficoEntradas').getContext('2d');
+    const ctxSaidas = document.getElementById('graficoSaidas').getContext('2d');
+
+    const entradasData = {
+        labels: entradas.map(e => e.nome),
+        datasets: [{
+            label: 'Quantidade de Entradas',
+            data: entradas.map(e => e.quantidade),
+            backgroundColor: [
+                '#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796','#fd7e14','#20c997'
+            ]
+        }]
+    };
+
+    const saidasData = {
+        labels: saidas.map(s => s.nome),
+        datasets: [{
+            label: 'Quantidade de Saídas',
+            data: saidas.map(s => s.quantidade),
+            backgroundColor: [
+                '#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796','#fd7e14','#20c997'
+            ]
+        }]
+    };
+
+    if (graficoEntradas) {
+        graficoEntradas.data = entradasData;
+        graficoEntradas.update();
+    } else {
+        graficoEntradas = new Chart(ctxEntradas, {
+            type: 'pie',
+            data: entradasData,
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    if (graficoSaidas) {
+        graficoSaidas.data = saidasData;
+        graficoSaidas.update();
+    } else {
+        graficoSaidas = new Chart(ctxSaidas, {
+            type: 'pie',
+            data: saidasData,
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+}
+
+async function atualizarGraficos() {
+    const response = await fetch('/dashboard/dados');
+    const dados = await response.json();
+    desenharGraficos(dados.entradas, dados.saidas);
+}
+
+setInterval(atualizarGraficos, 10000); // Atualiza a cada 10 segundos
+
+function atualizarDashboard() {
+    atualizarGraficos();
+}
+
+// Carrega os gráficos na primeira vez
+atualizarGraficos();
+</script>
+{% endblock %}
